@@ -28,7 +28,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [1] = LAYOUT(
         KC_ESC,          KC_NO,           KC_END,          KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_BSPC,         KC_NO,
         KC_HOME,         MS_BTN2,         MS_BTN3,         MS_BTN1,         KC_NO,           KC_LEFT,         KC_DOWN,         KC_UP,           KC_RGHT,         KC_NO,
-        KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_DEL,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
+        KC_LSFT,         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_DEL,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_TAB,          KC_ENT
     ),
     [2] = LAYOUT(
@@ -38,13 +38,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                            KC_NO,           KC_NO,           KC_TRNS,         KC_NO
     ),
     [3] = LAYOUT(
-        JP_GRV,          JP_ASTR,         JP_AMPR,         KC_NO,           JP_TILD,         KC_NO,           JP_UNDS,         JP_LCBR,         JP_RCBR,         JP_PLUS,
-        JP_AT,           JP_QUOT,         JP_DQUO,         JP_COLN,         KC_NO,           JP_HASH,         JP_SCLN,         JP_LPRN,         JP_RPRN,         KC_NO,
-        KC_NO,           JP_EXLM,         JP_CIRC,         JP_PIPE,         JP_DLR,          KC_NO,           JP_PERC,         JP_LBRC,         JP_RBRC,         JP_BSLS,
+        JP_GRV,          JP_ASTR,         JP_AMPR,         KC_NO,           JP_TILD,         KC_NO,           JP_UNDS,         JP_LCBR,         JP_RCBR,         JP_PIPE,
+        JP_AT,           JP_QUOT,         JP_DQUO,         JP_COLN,         KC_NO,           JP_HASH,         JP_SCLN,         JP_LPRN,         JP_RPRN,         JP_PLUS,
+        KC_NO,           JP_EXLM,         JP_CIRC,         KC_NO,           JP_DLR,          KC_NO,           JP_PERC,         JP_LBRC,         JP_RBRC,         JP_BSLS,
                                                            KC_TRNS,         KC_TRNS,         KC_NO,           KC_NO
     ),
     [4] = LAYOUT(
-        KC_NO,           KC_NO,           KC_F11,          KC_NO,           KC_F11,          KC_F12,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
+        KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_F11,          KC_F12,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
         KC_F1,           KC_F2,           KC_F3,           KC_F4,           KC_F5,           KC_F6,           KC_F7,           KC_F8,           KC_F9,           KC_F10,
         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_NO,           KC_NO
