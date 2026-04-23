@@ -28,7 +28,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [1] = LAYOUT(
         KC_ESC,          KC_NO,           KC_END,          KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_BSPC,         KC_NO,
         KC_HOME,         MS_BTN2,         MS_BTN3,         MS_BTN1,         KC_NO,           KC_LEFT,         KC_DOWN,         KC_UP,           KC_RGHT,         KC_NO,
-        KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_DEL,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
+        KC_LSFT,         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_DEL,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_TAB,          KC_ENT
     ),
     [2] = LAYOUT(
@@ -44,7 +44,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                            KC_TRNS,         KC_TRNS,         KC_NO,           KC_NO
     ),
     [4] = LAYOUT(
-        KC_NO,           KC_NO,           KC_F11,          KC_NO,           KC_F11,          KC_F12,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
+        KC_NO,           KC_NO,           KC_NO,           KC_F11,          KC_NO,           KC_NO,           KC_F12,          KC_NO,           KC_NO,           KC_NO,
         KC_F1,           KC_F2,           KC_F3,           KC_F4,           KC_F5,           KC_F6,           KC_F7,           KC_F8,           KC_F9,           KC_F10,
         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_NO,           KC_NO
@@ -119,7 +119,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 retro_timer = timer_read();
                 disable_retro = false;
             } else {
-                if (timer_elapsed(retro_timer) > 500) {
+                if (timer_elapsed(retro_timer) > 350) {
                     disable_retro = true;
                 }
             }
