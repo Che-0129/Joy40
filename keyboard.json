@@ -13,7 +13,6 @@
         "pointing_device": true
     },
     "encoder": { "rotary": [{ "pin_a": "GP14", "pin_b": "GP15" }] },
-    "tapping": { "retro_per_key": true },
     "split": {
         "enabled": true,
         "serial": { "driver": "vendor" },

@@ -5,18 +5,21 @@
 #include "timer.h"
 #include "keymap_japanese.h"
 
-#define MHEN_FN  LT(1, JP_MHEN)
-#define SPC_NUM  LT(2, KC_SPC)
-#define SPC_SMBL LT(3, KC_SPC)
-#define HENK_FN LT(4, JP_HENK)
-#define Z_SFT LSFT_T(JP_Z)
-#define SLSH_SFT RSFT_T(JP_SLSH)
-#define A_CTL LCTL_T(JP_A)
-#define MINS_CTL RCTL_T(JP_MINS)
-#define X_SPR LGUI_T(JP_X)
-#define DOT_SPR RGUI_T(JP_DOT)
-#define C_META LALT_T(JP_C)
+#define MHEN_FN   LT(1, JP_MHEN)
+#define SPC_NUM   LT(2, KC_SPC)
+#define SPC_SMBL  LT(3, KC_SPC)
+#define HENK_FN   LT(4, JP_HENK)
+#define MINS_CTL  RCTL_T(JP_MINS)
+#define SLSH_SFT  RSFT_T(JP_SLSH)
+#define X_SPR     LGUI_T(JP_X)
+#define DOT_SPR   RGUI_T(JP_DOT)
+#define C_META    LALT_T(JP_C)
 #define COMM_META RALT_T(JP_COMM)
+
+enum custom_keycodes {
+    A_CTL = SAFE_RANGE,
+    Z_SFT
+};
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [0] = LAYOUT(
@@ -38,8 +41,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                            KC_NO,           KC_NO,           KC_TRNS,         KC_NO
     ),
     [3] = LAYOUT(
-        JP_GRV,          JP_ASTR,         JP_AMPR,         KC_NO,           JP_TILD,         KC_NO,           JP_UNDS,         JP_LCBR,         JP_RCBR,         JP_PLUS,
-        JP_AT,           JP_QUOT,         JP_DQUO,         JP_COLN,         KC_NO,           JP_HASH,         JP_SCLN,         JP_LPRN,         JP_RPRN,         KC_NO,
+        JP_GRV,          JP_ASTR,         JP_AMPR,         KC_NO,           JP_TILD,         KC_NO,           JP_UNDS,         JP_LCBR,         JP_RCBR,         KC_NO,
+        JP_AT,           JP_QUOT,         JP_DQUO,         JP_COLN,         KC_NO,           JP_HASH,         JP_SCLN,         JP_LPRN,         JP_RPRN,         JP_PLUS,
         KC_NO,           JP_EXLM,         JP_CIRC,         JP_PIPE,         JP_DLR,          KC_NO,           JP_PERC,         JP_LBRC,         JP_RBRC,         JP_BSLS,
                                                            KC_TRNS,         KC_TRNS,         KC_NO,           KC_NO
     ),
@@ -66,7 +69,7 @@ typedef struct {
 
 void mute_sync_slave_handler(uint8_t in_len, const void* in_data, uint8_t out_len, void* out_data) {
     mute_state_t *state = (mute_state_t*)out_data;
-    state->pressed = !gpio_read_pin(GP13);
+    state->pressed      = !gpio_read_pin(GP13);
 }
 
 void keyboard_post_init_user(void) {
@@ -91,60 +94,108 @@ void housekeeping_task_user(void) {
 }
 
 report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, report_mouse_t right_report) {
-    left_report.h = -left_report.x;
-    left_report.v = left_report.y;
-    left_report.x = 0;
-    left_report.y = 0;
+    left_report.h  = -left_report.x;
+    left_report.v  = left_report.y;
+    left_report.x  = 0;
+    left_report.y  = 0;
     right_report.x = right_report.x;
     right_report.y = right_report.y;
     return pointing_device_combine_reports(left_report, right_report);
 }
 
-static bool disable_retro = false;
-static uint16_t retro_timer;
+typedef enum {
+    A_IDLE,
+    A_PRESSED,
+    A_HOLD,
+    A_HOLD_READY,
+    A_DONE,
+} a_state_t;
+
+static a_state_t  a_state        = A_IDLE;
+static uint16_t   a_timer        = 0;
+static uint16_t   a_retap_timer  = 0;
+
+bool process_record_a_ctl(uint16_t keycode, keyrecord_t *record) {
+    if (keycode != A_CTL) {
+        if (record->event.pressed && a_state == A_PRESSED && !IS_MODIFIER_KEYCODE(keycode)) {
+            tap_code(JP_A);
+            a_state = A_IDLE;
+        }
+        return true;
+    }
+    if (record->event.pressed) {
+        if (a_state == A_IDLE) {
+            a_state = A_PRESSED; a_timer = timer_read();
+        } else if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) < 150) {
+            tap_code16(LCTL(JP_A));
+            a_state = A_DONE; a_retap_timer = 0;
+        } else {
+            a_state = A_IDLE; a_retap_timer = 0;
+        }
+    } else {
+        if      (a_state == A_PRESSED)    { tap_code(JP_A);           a_state = A_IDLE; }
+        else if (a_state == A_HOLD)       { unregister_code(KC_LCTL); a_state = A_IDLE; }
+        else if (a_state == A_HOLD_READY) { unregister_code(KC_LCTL); a_retap_timer = timer_read(); }
+        else if (a_state == A_DONE)       { a_state = A_IDLE; }
+    }
+    return false;
+}
+
+typedef enum {
+    Z_IDLE,
+    Z_PRESSED,
+    Z_HOLD,
+    Z_HOLD_READY,
+    Z_DONE,
+} z_state_t;
+
+static z_state_t  z_state        = Z_IDLE;
+static uint16_t   z_timer        = 0;
+static uint16_t   z_retap_timer  = 0;
+
+bool process_record_z_sft(uint16_t keycode, keyrecord_t *record) {
+    if (keycode != Z_SFT) {
+        if (record->event.pressed && z_state == Z_PRESSED && !IS_MODIFIER_KEYCODE(keycode)) {
+            tap_code(JP_Z);
+            z_state = Z_IDLE;
+        }
+        return true;
+    }
+    if (record->event.pressed) {
+        if (z_state == Z_IDLE) {
+            z_state = Z_PRESSED; z_timer = timer_read();
+        } else if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) < 150) {
+            tap_code16(LSFT(JP_Z));
+            z_state = Z_DONE; z_retap_timer = 0;
+        } else {
+            z_state = Z_IDLE; z_retap_timer = 0;
+        }
+    } else {
+        if      (z_state == Z_PRESSED)    { tap_code(JP_Z);           z_state = Z_IDLE; }
+        else if (z_state == Z_HOLD)       { unregister_code(KC_LSFT); z_state = Z_IDLE; }
+        else if (z_state == Z_HOLD_READY) { unregister_code(KC_LSFT); z_retap_timer = timer_read(); }
+        else if (z_state == Z_DONE)       { z_state = Z_IDLE; }
+    }
+    return false;
+}
+
+void matrix_scan_user(void) {
+    if (a_state == A_PRESSED    && timer_elapsed(a_timer) >= 200)  { a_state = A_HOLD; register_code(KC_LCTL); }
+    if (a_state == A_HOLD       && timer_elapsed(a_timer) >= 750)  { a_state = A_HOLD_READY; }
+    if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) >= 150) { a_state = A_IDLE; a_retap_timer = 0; }
+
+    if (z_state == Z_PRESSED    && timer_elapsed(z_timer) >= 200)  { z_state = Z_HOLD; register_code(KC_LSFT); }
+    if (z_state == Z_HOLD       && timer_elapsed(z_timer) >= 750)  { z_state = Z_HOLD_READY; }
+    if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) >= 150) { z_state = Z_IDLE; z_retap_timer = 0; }
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (!process_record_a_ctl(keycode, record)) return false;
+    if (!process_record_z_sft(keycode, record)) return false;
     if ((layer_state_is(2) || layer_state_is(3)) && record->event.pressed) {
         del_mods(MOD_MASK_SHIFT);
     }
-    switch (keycode) {
-        case A_CTL:
-        case Z_SFT:
-        case X_SPR:
-        case C_META:
-        case MINS_CTL:
-        case SLSH_SFT:
-        case DOT_SPR:
-        case COMM_META:
-            if (record->event.pressed) {
-                retro_timer = timer_read();
-                disable_retro = false;
-            } else {
-                if (timer_elapsed(retro_timer) > 350) {
-                    disable_retro = true;
-                }
-            }
-            break;
-    }
     return true;
-}
-
-bool get_retro_tapping(uint16_t keycode, keyrecord_t *record) {
-    if (disable_retro) {
-        return false;
-    }
-    switch (keycode) {
-        case Z_SFT:
-        case SLSH_SFT:
-        case A_CTL:
-        case MINS_CTL:
-        case X_SPR:
-        case DOT_SPR:
-        case C_META:
-        case COMM_META:
-            return true;
-        default:
-            return false;
-    }
 }
 
 void suspend_wakeup_init_user(void) {
