@@ -30,28 +30,33 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
     [1] = LAYOUT(
         KC_ESC,          KC_NO,           KC_END,          KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_BSPC,         KC_NO,
-        KC_HOME,         MS_BTN2,         MS_BTN3,         MS_BTN1,         KC_NO,           KC_LEFT,         KC_DOWN,         KC_UP,           KC_RGHT,         KC_NO,
+        KC_HOME,         MS_BTN2,         MS_BTN1,         KC_NO,           KC_NO,           KC_LEFT,         KC_DOWN,         KC_UP,           KC_RGHT,         KC_NO,
         KC_LSFT,         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_DEL,          KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_TAB,          KC_ENT
     ),
     [2] = LAYOUT(
         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,
         JP_1,            JP_2,            JP_3,            JP_4,            JP_5,            JP_6,            JP_7,            JP_8,            JP_9,            JP_0,
-        KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,
+        KC_TRNS,         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_TRNS,         KC_NO
     ),
     [3] = LAYOUT(
         JP_GRV,          JP_ASTR,         JP_AMPR,         KC_NO,           JP_TILD,         KC_NO,           JP_UNDS,         JP_LCBR,         JP_RCBR,         KC_NO,
         JP_AT,           JP_QUOT,         JP_DQUO,         JP_COLN,         KC_NO,           JP_HASH,         JP_SCLN,         JP_LPRN,         JP_RPRN,         JP_PLUS,
-        KC_NO,           JP_EXLM,         JP_CIRC,         JP_PIPE,         JP_DLR,          KC_NO,           JP_PERC,         JP_LBRC,         JP_RBRC,         JP_BSLS,
+        KC_TRNS,         JP_EXLM,         JP_CIRC,         JP_PIPE,         JP_DLR,          KC_NO,           JP_PERC,         JP_LBRC,         JP_RBRC,         JP_BSLS,
                                                            KC_TRNS,         KC_TRNS,         KC_NO,           KC_NO
     ),
     [4] = LAYOUT(
-        KC_NO,           KC_NO,           KC_NO,           KC_F11,          KC_NO,           KC_NO,           KC_F12,          KC_NO,           KC_NO,           KC_NO,
+        KC_NO,           KC_NO,           KC_F11,          KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_F12,          KC_NO,           KC_NO,
         KC_F1,           KC_F2,           KC_F3,           KC_F4,           KC_F5,           KC_F6,           KC_F7,           KC_F8,           KC_F9,           KC_F10,
         KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,           KC_NO,
                                                            KC_NO,           KC_NO,           KC_NO,           KC_NO
     )
+};
+
+const uint16_t PROGMEM combo_ms_btn3[] = {MS_BTN1, MS_BTN2, COMBO_END};
+combo_t key_combos[] = {
+    COMBO(combo_ms_btn3, MS_BTN3)
 };
 
 bool encoder_update_user(uint8_t index, bool clockwise) {
@@ -125,12 +130,15 @@ bool process_record_a_ctl(uint16_t keycode, keyrecord_t *record) {
     }
     if (record->event.pressed) {
         if (a_state == A_IDLE) {
-            a_state = A_PRESSED; a_timer = timer_read();
-        } else if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) < 150) {
+            a_state = A_PRESSED;
+            a_timer = timer_read();
+        } else if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) < 100) {
             tap_code16(LCTL(JP_A));
-            a_state = A_DONE; a_retap_timer = 0;
+            a_state = A_DONE;
+            a_retap_timer = 0;
         } else {
-            a_state = A_IDLE; a_retap_timer = 0;
+            a_state = A_IDLE;
+            a_retap_timer = 0;
         }
     } else {
         if      (a_state == A_PRESSED)    { tap_code(JP_A);           a_state = A_IDLE; }
@@ -156,22 +164,32 @@ static uint16_t   z_retap_timer  = 0;
 bool process_record_z_sft(uint16_t keycode, keyrecord_t *record) {
     if (keycode != Z_SFT) {
         if (record->event.pressed && z_state == Z_PRESSED && !IS_MODIFIER_KEYCODE(keycode)) {
-            tap_code(JP_Z);
+            if (layer_state_is(0)) {
+                tap_code(JP_Z);
+            }
             z_state = Z_IDLE;
         }
         return true;
     }
     if (record->event.pressed) {
         if (z_state == Z_IDLE) {
-            z_state = Z_PRESSED; z_timer = timer_read();
-        } else if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) < 150) {
-            tap_code16(LSFT(JP_Z));
-            z_state = Z_DONE; z_retap_timer = 0;
+            z_state = Z_PRESSED;
+            z_timer = timer_read();
+        } else if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) < 100) {
+            if (layer_state_is(0)) {
+                tap_code16(LSFT(JP_Z));
+            }
+            z_state = Z_DONE;
+            z_retap_timer = 0;
         } else {
-            z_state = Z_IDLE; z_retap_timer = 0;
+            z_state = Z_IDLE;
+            z_retap_timer = 0;
         }
     } else {
-        if      (z_state == Z_PRESSED)    { tap_code(JP_Z);           z_state = Z_IDLE; }
+        if (z_state == Z_PRESSED && layer_state_is(0)) {
+            tap_code(JP_Z);
+            z_state = Z_IDLE;
+        }
         else if (z_state == Z_HOLD)       { unregister_code(KC_LSFT); z_state = Z_IDLE; }
         else if (z_state == Z_HOLD_READY) { unregister_code(KC_LSFT); z_retap_timer = timer_read(); }
         else if (z_state == Z_DONE)       { z_state = Z_IDLE; }
@@ -181,12 +199,12 @@ bool process_record_z_sft(uint16_t keycode, keyrecord_t *record) {
 
 void matrix_scan_user(void) {
     if (a_state == A_PRESSED    && timer_elapsed(a_timer) >= 200)  { a_state = A_HOLD; register_code(KC_LCTL); }
-    if (a_state == A_HOLD       && timer_elapsed(a_timer) >= 750)  { a_state = A_HOLD_READY; }
-    if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) >= 150) { a_state = A_IDLE; a_retap_timer = 0; }
+    if (a_state == A_HOLD       && timer_elapsed(a_timer) >= 500)  { a_state = A_HOLD_READY; }
+    if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) >= 100) { a_state = A_IDLE; a_retap_timer = 0; }
 
     if (z_state == Z_PRESSED    && timer_elapsed(z_timer) >= 200)  { z_state = Z_HOLD; register_code(KC_LSFT); }
-    if (z_state == Z_HOLD       && timer_elapsed(z_timer) >= 750)  { z_state = Z_HOLD_READY; }
-    if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) >= 150) { z_state = Z_IDLE; z_retap_timer = 0; }
+    if (z_state == Z_HOLD       && timer_elapsed(z_timer) >= 500)  { z_state = Z_HOLD_READY; }
+    if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) >= 100) { z_state = Z_IDLE; z_retap_timer = 0; }
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {

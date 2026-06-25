@@ -6,10 +6,11 @@
     "diode_direction": "COL2ROW",
     "features": {
         "bootmagic": true,
+        "combo": true,
+        "encoder": true,
         "extrakey": true,
         "mousekey": true,
         "nkro": false,
-        "encoder": true,
         "pointing_device": true
     },
     "encoder": { "rotary": [{ "pin_a": "GP14", "pin_b": "GP15" }] },
