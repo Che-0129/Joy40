@@ -165,7 +165,6 @@ bool process_record_z_sft(uint16_t keycode, keyrecord_t *record) {
     if (keycode != Z_SFT) {
         if (record->event.pressed && z_state == Z_TAP) {
             register_code(KC_LSFT);
-            z_state = Z_IDLE;
             z_state = Z_HOLD;
         }
         return true;
