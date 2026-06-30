@@ -122,9 +122,14 @@ static uint16_t   a_retap_timer  = 0;
 
 bool process_record_a_ctl(uint16_t keycode, keyrecord_t *record) {
     if (keycode != A_CTL) {
-        if (record->event.pressed && a_state == A_TAP && !IS_MODIFIER_KEYCODE(keycode)) {
-            tap_code(JP_A);
-            a_state = A_IDLE;
+        if (record->event.pressed && a_state == A_TAP) {
+            if (keycode == Z_SFT || IS_MODIFIER_KEYCODE(keycode)) {
+                register_code(KC_LCTL);
+                a_state = A_HOLD;
+            } else {
+                tap_code(JP_A);
+                a_state = A_IDLE;
+            }
         }
         return true;
     }
