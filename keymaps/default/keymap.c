@@ -111,42 +111,79 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
 typedef enum {
     A_IDLE,
     A_TAP,
+    A_PENDING_HOLD,
     A_HOLD,
     A_HOLD_READY,
     A_DONE,
 } a_state_t;
 
-static a_state_t  a_state        = A_IDLE;
-static uint16_t   a_timer        = 0;
-static uint16_t   a_retap_timer  = 0;
+static a_state_t a_state           = A_IDLE;
+static uint16_t  a_timer           = 0;
+static uint16_t  a_retap_timer     = 0;
+static uint16_t  a_pending_keycode = KC_NO;
+static uint16_t  a_pending_timer   = 0;
 
 bool process_record_a_ctl(uint16_t keycode, keyrecord_t *record) {
     if (keycode != A_CTL) {
         if (record->event.pressed && a_state == A_TAP) {
-            if (keycode == Z_SFT || IS_MODIFIER_KEYCODE(keycode)) {
-                register_code(KC_LCTL);
-                a_state = A_HOLD;
-            } else {
-                tap_code(JP_A);
-                a_state = A_IDLE;
-            }
+            a_pending_keycode = keycode;
+            a_pending_timer = timer_read();
+            a_state = A_PENDING_HOLD;
+            return false;
+        }
+        if (record->event.pressed && a_state == A_PENDING_HOLD) {
+            register_code(KC_LCTL);
+            register_code16(a_pending_keycode);
+            unregister_code16(a_pending_keycode);
+            register_code16(keycode);
+            unregister_code16(keycode);
+            a_pending_keycode = KC_NO;
+            a_state = A_HOLD;
+            a_timer = timer_read();
+            return false;
+        }
+        if (!record->event.pressed && a_state == A_PENDING_HOLD && keycode == a_pending_keycode) {
+            register_code(KC_LCTL);
+            register_code16(keycode);
+            unregister_code16(keycode);
+            a_pending_keycode = KC_NO;
+            a_state = A_HOLD;
+            a_timer = timer_read();
+            return false;
         }
         return true;
     }
     if (record->event.pressed) {
-        if (a_state == A_IDLE) {
-            a_state = A_TAP;
-            a_timer = timer_read();
-        } else if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) < 100) {
+        if (a_state == A_IDLE) { a_state = A_TAP; a_timer = timer_read(); }
+        else if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) < 100) {
             tap_code16(LCTL(JP_A));
             a_state = A_DONE;
             a_retap_timer = 0;
-        } else {
-            a_state = A_IDLE;
-            a_retap_timer = 0;
         }
-    } else {
-        if      (a_state == A_TAP)        { tap_code(JP_A);           a_state = A_IDLE; }
+        else { a_state = A_IDLE; a_retap_timer = 0; }
+    }
+    else {
+        if (a_state == A_TAP) { tap_code(JP_A); a_state = A_IDLE; }
+        else if (a_state == A_PENDING_HOLD) {
+            if (timer_elapsed(a_pending_timer) < 75) {
+                tap_code(JP_A);
+                if (a_pending_keycode != KC_NO) {
+                    register_code16(a_pending_keycode);
+                    unregister_code16(a_pending_keycode);
+                    a_pending_keycode = KC_NO;
+                }
+                a_state = A_IDLE;
+            } else {
+                register_code(KC_LCTL);
+                if (a_pending_keycode != KC_NO) {
+                    register_code16(a_pending_keycode);
+                    unregister_code16(a_pending_keycode);
+                    a_pending_keycode = KC_NO;
+                }
+                unregister_code(KC_LCTL);
+                a_state = A_IDLE;
+            }
+        }
         else if (a_state == A_HOLD)       { unregister_code(KC_LCTL); a_state = A_IDLE; }
         else if (a_state == A_HOLD_READY) { unregister_code(KC_LCTL); a_retap_timer = timer_read(); }
         else if (a_state == A_DONE)       { a_state = A_IDLE; }
@@ -157,53 +194,93 @@ bool process_record_a_ctl(uint16_t keycode, keyrecord_t *record) {
 typedef enum {
     Z_IDLE,
     Z_TAP,
+    Z_PENDING_HOLD,
     Z_HOLD,
     Z_HOLD_READY,
     Z_DONE,
 } z_state_t;
 
-static z_state_t  z_state        = Z_IDLE;
-static uint16_t   z_timer        = 0;
-static uint16_t   z_retap_timer  = 0;
+static z_state_t z_state           = Z_IDLE;
+static uint16_t  z_timer           = 0;
+static uint16_t  z_retap_timer     = 0;
+static uint16_t  z_pending_keycode = KC_NO;
+static uint16_t  z_pending_timer   = 0;
 
 bool process_record_z_sft(uint16_t keycode, keyrecord_t *record) {
     if (keycode != Z_SFT) {
         if (record->event.pressed && z_state == Z_TAP) {
+            z_pending_keycode = keycode;
+            z_pending_timer = timer_read();
+            z_state = Z_PENDING_HOLD;
+            return false;
+        }
+        if (record->event.pressed && z_state == Z_PENDING_HOLD) {
             register_code(KC_LSFT);
+            register_code16(z_pending_keycode);
+            unregister_code16(z_pending_keycode);
+            register_code16(keycode);
+            unregister_code16(keycode);
+            z_pending_keycode = KC_NO;
             z_state = Z_HOLD;
+            z_timer = timer_read();
+            return false;
+        }
+        if (!record->event.pressed && z_state == Z_PENDING_HOLD && keycode == z_pending_keycode) {
+            register_code(KC_LSFT);
+            register_code16(keycode);
+            unregister_code16(keycode);
+            z_pending_keycode = KC_NO;
+            z_state = Z_HOLD;
+            z_timer = timer_read();
+            return false;
         }
         return true;
     }
     if (record->event.pressed) {
-        if (z_state == Z_IDLE) {
-            z_state = Z_TAP;
-            z_timer = timer_read();
-        } else if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) < 100) {
-            if (layer_state_is(0)) {
-                tap_code16(LSFT(JP_Z));
-            }
+        if (z_state == Z_IDLE) { z_state = Z_TAP; z_timer = timer_read(); }
+        else if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) < 100) {
+            if (layer_state_is(0)) { tap_code16(LSFT(JP_Z)); }
             z_state = Z_DONE;
             z_retap_timer = 0;
-        } else {
-            z_state = Z_IDLE;
-            z_retap_timer = 0;
         }
-    } else {
-        if      (z_state == Z_TAP && layer_state_is(0)) { tap_code(JP_Z);           z_state = Z_IDLE; }
-        else if (z_state == Z_HOLD)                     { unregister_code(KC_LSFT); z_state = Z_IDLE; }
-        else if (z_state == Z_HOLD_READY)               { unregister_code(KC_LSFT); z_retap_timer = timer_read(); }
-        else if (z_state == Z_DONE)                     { z_state = Z_IDLE; }
+        else { z_state = Z_IDLE; z_retap_timer = 0; }
+    }
+    else {
+        if (z_state == Z_TAP && layer_state_is(0)) { tap_code(JP_Z); z_state = Z_IDLE; }
+        else if (z_state == Z_PENDING_HOLD) {
+            if (timer_elapsed(z_pending_timer) < 75) {
+                if (layer_state_is(0)) { tap_code(JP_Z); }
+                if (z_pending_keycode != KC_NO) {
+                    register_code16(z_pending_keycode);
+                    unregister_code16(z_pending_keycode);
+                    z_pending_keycode = KC_NO;
+                }
+                z_state = Z_IDLE;
+            } else {
+                register_code(KC_LSFT);
+                if (z_pending_keycode != KC_NO) {
+                    register_code16(z_pending_keycode);
+                    unregister_code16(z_pending_keycode);
+                    z_pending_keycode = KC_NO;
+                }
+                unregister_code(KC_LSFT);
+                z_state = Z_IDLE;
+            }
+        }
+        else if (z_state == Z_HOLD)       { unregister_code(KC_LSFT); z_state = Z_IDLE; }
+        else if (z_state == Z_HOLD_READY) { unregister_code(KC_LSFT); z_retap_timer = timer_read(); }
+        else if (z_state == Z_DONE)       { z_state = Z_IDLE; }
     }
     return false;
 }
 
 void matrix_scan_user(void) {
-    if (a_state == A_TAP        && timer_elapsed(a_timer) >= 200)  { a_state = A_HOLD; register_code(KC_LCTL); }
-    if (a_state == A_HOLD       && timer_elapsed(a_timer) >= 500)  { a_state = A_HOLD_READY; }
+    if (a_state == A_TAP && timer_elapsed(a_timer) >= 200)                               { a_state = A_HOLD; register_code(KC_LCTL); }
+    if (a_state == A_HOLD && timer_elapsed(a_timer) >= 500)                              { a_state = A_HOLD_READY; }
     if (a_state == A_HOLD_READY && a_retap_timer && timer_elapsed(a_retap_timer) >= 100) { a_state = A_IDLE; a_retap_timer = 0; }
 
-    if (z_state == Z_TAP        && timer_elapsed(z_timer) >= 200)  { z_state = Z_HOLD; register_code(KC_LSFT); }
-    if (z_state == Z_HOLD       && timer_elapsed(z_timer) >= 500)  { z_state = Z_HOLD_READY; }
+    if (z_state == Z_TAP && timer_elapsed(z_timer) >= 200)                               { z_state = Z_HOLD; register_code(KC_LSFT); }
+    if (z_state == Z_HOLD && timer_elapsed(z_timer) >= 500)                              { z_state = Z_HOLD_READY; }
     if (z_state == Z_HOLD_READY && z_retap_timer && timer_elapsed(z_retap_timer) >= 100) { z_state = Z_IDLE; z_retap_timer = 0; }
 }
 
